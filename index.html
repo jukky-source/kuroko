@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>黒子 - ずっと働くAIエージェント</title>
+<meta name="description" content="iPhoneのホーム画面から使える、ずっと働き続ける無料のAIエージェント。">
+<meta name="theme-color" content="#101014">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="黒子">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&display=swap">
+<style>
+:root{
+  --stage:#101014;      /* 黒檀の黒 */
+  --surface:#17171d;
+  --surface2:#1e1e26;
+  --paper:#f2efe9;      /* 和紙の白 */
+  --ink:#17171c;
+  --muted:#9b978e;
+  --shu:#e8563f;        /* 朱色 */
+  --gold:#c9a24b;       /* 山吹の金 */
+  --line:rgba(242,239,233,.13);
+  --radius:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--stage);color:var(--paper);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
+  font-size:15px;line-height:1.65;overscroll-behavior-y:none;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select,textarea{font:inherit}
+a{color:var(--gold)}
+.serif{font-family:"Shippori Mincho",serif}
+
+/* ---------- ヘッダ ---------- */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  display:flex;align-items:center;gap:10px;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px;
+  background:linear-gradient(rgba(16,16,20,.94),rgba(16,16,20,.86));
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.logo-tag{
+  width:30px;height:38px;border-radius:6px;flex:none;position:relative;
+  background:#0a0a0e;border:1.5px solid var(--gold);
+  display:grid;place-items:center;
+  font-family:"Shippori Mincho",serif;font-weight:700;font-size:16px;color:var(--paper);
+}
+.logo-tag::after{content:"";position:absolute;right:4px;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--shu)}
+.brand{display:flex;flex-direction:column;min-width:0}
+.brand h1{font-family:"Shippori Mincho",serif;font-size:17px;font-weight:700;letter-spacing:.06em}
+.brand small{color:var(--muted);font-size:10.5px;letter-spacing:.12em}
+.dot{width:8px;height:8px;border-radius:50%;background:#4a4a52;margin-left:auto;flex:none;transition:background .3s}
+.dot.work{background:var(--shu);animation:breathe 1.1s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.55}}
+@media (prefers-reduced-motion:reduce){.dot.work{animation:none}}
+
+/* ---------- タブ ---------- */
+main{padding:calc(env(safe-area-inset-top,0px) + 66px) 0 calc(76px + var(--safe-b));height:100dvh}
+.view{display:none;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.view.on{display:block}
+nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;
+  padding:6px 8px calc(6px + var(--safe-b));
+  background:rgba(16,16,20,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+}
+nav button{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:7px 0 5px;color:var(--muted);font-size:10.5px;letter-spacing:.08em;border-radius:12px;
+}
+nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--paper)}
+nav button.on::after{content:"";width:16px;height:2px;background:var(--shu);border-radius:2px}
+
+/* ---------- チャット ---------- */
+#chatView{padding:14px 14px 10px;flex-direction:column;gap:14px}
+#chatView.on{display:flex}
+.msg{display:flex;gap:9px;max-width:86%}
+.msg.agent{align-self:flex-start}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.tag-mini{
+  width:24px;height:24px;flex:none;margin-top:3px;border-radius:5px;
+  background:#0a0a0e;border:1px solid var(--gold);color:var(--paper);
+  font-family:"Shippori Mincho",serif;font-size:12px;font-weight:700;
+  display:grid;place-items:center;
+}
+.bubble{padding:10px 14px;border-radius:var(--radius);overflow-wrap:anywhere}
+.msg.agent .bubble{border:1px solid var(--line);background:var(--surface)}
+.msg.user .bubble{background:var(--paper);color:var(--ink);border-bottom-right-radius:5px}
+.msg.agent .bubble{border-top-left-radius:5px}
+.bubble p{margin:.25em 0}
+.bubble h2,.bubble h3{font-family:"Shippori Mincho",serif;margin:.6em 0 .3em;font-size:1em;letter-spacing:.05em;color:var(--gold)}
+.bubble ul{margin:.3em 0 .5em 1.2em}
+.bubble li{margin:.2em 0}
+.bubble code{background:rgba(242,239,233,.12);padding:1px 5px;border-radius:5px;font-size:.86em;font-family:ui-monospace,Menlo,monospace}
+.bubble pre{background:rgba(0,0,0,.5);padding:10px;border-radius:10px;overflow-x:auto;margin:.5em 0}
+.bubble pre code{background:none;padding:0}
+.bubble strong{color:var(--gold)}
+.msg time{display:block;font-size:10px;color:var(--muted);margin-top:4px}
+.thinking{display:flex;gap:5px;padding:14px 16px}
+.thinking i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:think 1s infinite}
+.thinking i:nth-child(2){animation-delay:.15s}.thinking i:nth-child(3){animation-delay:.3s}
+@keyframes think{40%{transform:translateY(-5px);background:var(--shu)}}
+@media (prefers-reduced-motion:reduce){.thinking i{animation:none}}
+
+.empty{margin:auto;text-align:center;padding:40px 24px;max-width:340px}
+.empty .logo-tag{width:64px;height:82px;margin:0 auto 18px;font-size:34px;border-radius:12px;position:relative}
+.empty h2{font-family:"Shippori Mincho",serif;font-size:20px;letter-spacing:.1em;margin-bottom:8px}
+.empty p{color:var(--muted);font-size:13px;text-align:left}
+.chips{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.chips button{
+  border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-align:left;
+  color:var(--paper);font-size:13.5px;background:var(--surface);transition:border-color .2s;
+}
+.chips button:active{border-color:var(--shu)}
+
+/* ---------- 入力バー ---------- */
+#inputBar{
+  position:fixed;left:0;right:0;bottom:calc(56px + var(--safe-b));z-index:19;
+  display:flex;gap:8px;align-items:flex-end;
+  padding:8px 12px;
+}
+#inputBar textarea{
+  flex:1;resize:none;background:var(--surface2);border:1px solid var(--line);color:var(--paper);
+  border-radius:22px;padding:10px 16px;max-height:110px;line-height:1.5;outline:none;font-size:15px;
+}
+#inputBar textarea:focus{border-color:rgba(201,162,75,.6)}
+#sendBtn{
+  width:42px;height:42px;flex:none;border-radius:50%;background:var(--shu);color:#fff;
+  display:grid;place-items:center;transition:transform .15s;
+}
+#sendBtn:active{transform:scale(.9)}
+#sendBtn svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#sendBtn.stop{background:var(--surface2);border:1px solid var(--shu)}
+
+/* ---------- 日報 ---------- */
+.wrap{padding:16px;max-width:720px;margin:0 auto}
+.paper-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 16px;margin-bottom:14px;
+}
+.paper-card h2{font-family:"Shippori Mincho",serif;letter-spacing:.08em;font-size:16px;color:var(--gold);margin-bottom:10px}
+.dates{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.dates button{flex:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--muted)}
+.dates button.on{border-color:var(--shu);color:var(--paper)}
+.report-body{font-size:14px}
+.report-body h2,.report-body h3{font-family:"Shippori Mincho",serif;color:var(--gold);font-size:15px;margin:.8em 0 .35em}
+.report-body p{margin:.35em 0}
+.report-body ul{margin:.3em 0 .6em 1.2em}
+.report-body li{margin:.25em 0}
+.report-body a{word-break:break-all}
+.muted{color:var(--muted);font-size:12.5px}
+.howto{font-size:13px;color:var(--muted);line-height:1.8}
+.howto b{color:var(--paper)}
+.howto ol{margin:.4em 0 .4em 1.3em}
+.btn{
+  display:inline-block;border:1px solid var(--line);border-radius:12px;padding:9px 16px;
+  color:var(--paper);font-size:13.5px;text-decoration:none;background:var(--surface2);
+}
+.btn.warm{border-color:var(--shu);color:#fff;background:var(--shu)}
+
+/* ---------- 設定 ---------- */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;color:var(--muted);letter-spacing:.1em;margin-bottom:6px}
+.field input,.field select{
+  width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;
+  color:var(--paper);padding:11px 14px;outline:none;
+}
+.field input:focus,.field select:focus{border-color:rgba(201,162,75,.6)}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.directives li{margin:.4em 0;border-left:2px solid var(--gold);padding-left:10px;font-size:13.5px;list-style:none}
+.warn{border-left:3px solid var(--shu);background:rgba(232,86,63,.08);border-radius:0 12px 12px 0;padding:10px 14px;font-size:13px;margin-bottom:16px;line-height:1.7}
+.ok-msg{color:#7fc98f;font-size:12.5px}
+.err-msg{color:var(--shu);font-size:12.5px}
+.mini{font-size:12px;color:var(--muted);line-height:1.7}
+hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-tag">黒</div>
+  <div class="brand">
+    <h1 id="agentName">黒子</h1>
+    <small>ALWAYS WORKING · FREE</small>
+  </div>
+  <div class="dot" id="statusDot"></div>
+</header>
+
+<main>
+  <!-- ========== チャット ========== -->
+  <section class="view on" id="chatView" aria-label="会話">
+    <div class="empty" id="emptyState">
+      <div class="logo-tag">黒</div>
+      <h2>黒子と話す</h2>
+      <p id="emptyHint">何でも頼んでください。調べもの、文章、相談、考えの整理まで。</p>
+      <div class="chips" id="chips"></div>
+    </div>
+  </section>
+
+  <!-- ========== 日報 ========== -->
+  <section class="view" id="reportView" aria-label="日報">
+    <div class="wrap">
+      <div id="reportBox">
+        <div class="paper-card">
+          <h2>本日の日報</h2>
+          <div class="dates" id="dateChips"></div>
+          <div class="report-body muted" id="reportBody">読み込み中…</div>
+        </div>
+      </div>
+      <div class="paper-card">
+        <h2>黒子の働き方</h2>
+        <p class="howto" id="workHow">
+          毎日 <b>朝7時</b> と <b>夜22時</b>(日本時間)に、GitHubの無料の仕組み(GitHub Actions)の中で目を覚まし、
+          指示書(<b>agent.json</b>)に従って働き、日報をこの場所に残します。<br>
+          手動で今すぐ働かせる:リポジトリの <b>Actions → 黒子の毎日の仕事 → Run workflow</b>。
+        </p>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <a class="btn" id="actionsLink" target="_blank" rel="noopener">Actionsを開く</a>
+          <a class="btn" id="editAgentLink" target="_blank" rel="noopener">指示書を編集</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 設定 ========== -->
+  <section class="view" id="settingsView" aria-label="設定">
+    <div class="wrap">
+      <div class="warn" id="installHint">
+        <b>アプリとして使うには</b><br>
+        Safariでこのページを開き、「共有」→「ホーム画面に追加」をタップしてください。ホームのアイコンから、普通のアプリのように起動できます。
+      </div>
+
+      <div class="paper-card">
+        <h2>頭脳(無料API)</h2>
+        <div class="field">
+          <label>プロバイダ</label>
+          <select id="provider">
+            <option value="pollinations">Pollinations(キー不要・今すぐ使える)</option>
+            <option value="gemini">Google Gemini(無料枠・高品質)</option>
+            <option value="groq">Groq(無料枠・高速)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>APIキー(あなたのiPhone内にのみ保存されます)</label>
+          <input id="apiKey" type="password" placeholder="AIza… / gsk_…" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>モデル</label>
+          <div class="row">
+            <select id="model"><option value="">モデルを選択…</option></select>
+            <button class="btn" id="fetchModels" style="flex:none">一覧取得</button>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn warm" id="saveBtn">保存する</button>
+          <button class="btn" id="testBtn">接続テスト</button>
+        </div>
+        <p class="mini" id="testResult" style="margin-top:10px"></p>
+        <hr class="sep">
+        <p class="mini">
+          ※ 頭脳が「Pollinations」なら、キー登録なしで今すぐ使えます。Gemini/Groqのキーは品質を上げたいときに。<br>
+          無料キーの入手:<br>
+          · Gemini → <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>(無料、カード不要)<br>
+          · Groq → <a href="https://console.groq.com/keys" target="_blank" rel="noopener">Groq Console</a>(無料、カード不要)
+        </p>
+      </div>
+
+      <div class="paper-card">
+        <h2>黒子への指示書</h2>
+        <p class="mini" style="margin-bottom:10px">リポジトリの <b>agent.json</b> で、日々の仕事の内容や性格を変更できます。</p>
+        <ul class="directives" id="directiveList"></ul>
+        <div style="margin-top:12px"><a class="btn" id="editAgentLink2" target="_blank" rel="noopener">GitHubで指示書を編集する</a></div>
+      </div>
+
+      <div class="paper-card">
+        <h2>データ</h2>
+        <p class="mini">会話の履歴とAPIキーは、あなたのiPhone内(localStorage)にだけ保存されます。サーバには送信されません(会話の内容はAIへの応答に使われます)。</p>
+        <div style="margin-top:12px"><button class="btn" id="clearBtn">会話履歴を消去</button></div>
+      </div>
+
+      <p class="mini" style="text-align:center;padding:8px 0 20px">
+        黒子 v1 — 完全無料の構成:GitHub Pages(体)+ GitHub Actions(労働)+ 無料LLM API(頭脳)
+      </p>
+    </div>
+  </section>
+</main>
+
+<div id="inputBar">
+  <textarea id="input" rows="1" placeholder="黒子に話しかける…"></textarea>
+  <button id="sendBtn" aria-label="送信">
+    <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </button>
+</div>
+
+<nav>
+  <button class="on" data-view="chat">
+    <svg viewBox="0 0 24 24"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-5 4v-4z"/></svg>会話
+  </button>
+  <button data-view="report">
+    <svg viewBox="0 0 24 24"><path d="M7 3h10a1 1 0 0 1 1 1v16l-3-2-3 2-3-2-3 2V4a1 1 0 0 1 1-1zM9 8h6M9 12h6"/></svg>日報
+  </button>
+  <button data-view="settings">
+    <svg viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg>設定
+  </button>
+</nav>
+
+<script>
+'use strict';
+/* ================= 黒子 (kuroko) ================= */
+const $ = (s) => document.querySelector(s);
+const OWNER = location.hostname.split('.')[0];
+const REPO = location.pathname.split('/')[1] || 'kuroko';
+
+/* ---------- 状態 ---------- */
+let settings = JSON.parse(localStorage.getItem('kuroko.settings') || '{}');
+let history = JSON.parse(localStorage.getItem('kuroko.chat') || '[]');
+let agentCfg = null;
+let abort = null, streaming = false;
+
+const saveSettings = () => localStorage.setItem('kuroko.settings', JSON.stringify(settings));
+const saveHistory = () => localStorage.setItem('kuroko.chat', JSON.stringify(history.slice(-200)));
+
+/* ---------- タブ ---------- */
+document.querySelectorAll('nav button').forEach((b) => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach((x) => x.classList.remove('on'));
+    document.querySelectorAll('.view').forEach((v) => v.classList.remove('on'));
+    b.classList.add('on');
+    $('#' + b.dataset.view + 'View').classList.add('on');
+    $('#inputBar').style.display = b.dataset.view === 'chat' ? 'flex' : 'none';
+  });
+});
+
+/* ---------- markdown簡易描画 ---------- */
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function md(src) {
+  const blocks = [];
+  let s = esc(src).replace(/```([\s\S]*?)```/g, (m, c) => {
+    blocks.push('<pre><code>' + c.trim() + '</code></pre>');
+    return '\u0000' + (blocks.length - 1) + '\u0000';
+  });
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const out = [];
+  let inList = false;
+  for (const line of s.split('\n')) {
+    const t = line.trim();
+    if (/^\u0000\d+\u0000$/.test(t)) { if (inList) { out.push('</ul>'); inList = false; } out.push(t); continue; }
+    if (/^<pre>/.test(t)) { if (inList) { out.push('</ul>'); inList = false; } out.push(t); continue; }
+    let m;
+    if ((m = t.match(/^(#{1,3})\s+(.*)$/))) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<h3>' + m[2] + '</h3>');
+    } else if (/^[-*・]\s+/.test(t)) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push('<li>' + t.replace(/^[-*・]\s+/, '') + '</li>');
+    } else if (t === '') {
+      if (inList) { out.push('</ul>'); inList = false; }
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<p>' + t + '</p>');
+    }
+  }
+  if (inList) out.push('</ul>');
+  let html = out.join('');
+  html = html.replace(/\u0000(\d+)\u0000/g, (m, i) => blocks[+i]);
+  return html;
+}
+
+/* ---------- チャット描画 ---------- */
+const chatView = $('#chatView');
+function timeStr(ts) {
+  return new Date(ts).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+}
+function addMsg(role, text, ts, quiet) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + (role === 'user' ? 'user' : 'agent');
+  el.innerHTML = (role === 'user' ? '' : '<div class="tag-mini">黒</div>') +
+    '<div class="bubble">' + md(text) + '<time>' + timeStr(ts || Date.now()) + '</time></div>';
+  chatView.appendChild(el);
+  chatView.scrollTop = chatView.scrollHeight;
+  return el.querySelector('.bubble');
+}
+function refreshEmpty() {
+  const has = history.length > 0;
+  $('#emptyState').style.display = has ? 'none' : 'block';
+  if (!has) {
+    const hint = $('#emptyHint');
+    const needsKey = settings.provider && settings.provider !== 'pollinations' && (!settings.key || !settings.model);
+    if (needsKey) {
+      hint.innerHTML = '選んだ頭脳にはAPIキーが必要です。<b>設定</b>タブでキーを保存するか、頭脳を「Pollinations(キー不要)」に戻してください。';
+      $('#chips').innerHTML = '<button onclick="switchTab(\'settings\')">設定タブを開く →</button>';
+    } else {
+      hint.innerHTML = '何でも頼んでください。調べもの、文章、相談、考えの整理まで。無料の頭脳で、今すぐ動きます。';
+      $('#chips').innerHTML = '';
+    }
+  }
+}
+function switchTab(name) {
+  document.querySelector('nav button[data-view="' + name + '"]').click();
+}
+window.switchTab = switchTab;
+
+function renderAll() {
+  chatView.querySelectorAll('.msg').forEach((e) => e.remove());
+  history.forEach((m) => addMsg(m.role, m.text, m.ts));
+  refreshEmpty();
+}
+
+/* ---------- LLM 呼び出し(ストリーミング) ---------- */
+async function* sseLines(res) {
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split('\n');
+    buf = parts.pop();
+    for (const line of parts) {
+      const t = line.trim();
+      if (t.startsWith('data:')) yield t.slice(5).trim();
+    }
+  }
+  if (buf.trim().startsWith('data:')) yield buf.trim().slice(5).trim();
+}
+
+async function streamChat(messages, onDelta) {
+  const sys = (agentCfg && agentCfg.persona) || 'あなたは「黒子」。主人に仕える、丁寧で簡潔なagentです。';
+  const last20 = messages.slice(-20);
+  let res;
+  if (settings.provider === 'pollinations' || !settings.key) {
+    const model = settings.provider === 'pollinations' && settings.model ? settings.model : 'openai-fast';
+    res = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      signal: abort ? abort.signal : undefined,
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'system', content: sys },
+          ...last20.map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))]
+      })
+    });
+    if (!res.ok) throw await apiError(res);
+    const j = await res.json();
+    const fullText = j.choices?.[0]?.message?.content || '';
+    for (let i = 0; i < fullText.length; i += 18) {
+      onDelta(fullText.slice(i, i + 18));
+      await new Promise((r) => setTimeout(r, 12));
+    }
+    return;
+  }
+  if (settings.provider === 'groq') {
+    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + settings.key },
+      body: JSON.stringify({
+        model: settings.model || 'openai/gpt-oss-120b',
+        stream: true, temperature: 0.9, max_tokens: 4096,
+        messages: [{ role: 'system', content: sys },
+          ...last20.map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))]
+      })
+    });
+    if (!res.ok) throw await apiError(res);
+    for await (const data of sseLines(res)) {
+      if (data === '[DONE]') break;
+      try { const j = JSON.parse(data); const t = j.choices?.[0]?.delta?.content; if (t) onDelta(t); } catch (e) {}
+    }
+  } else {
+    res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' +
+      encodeURIComponent(settings.model || 'gemini-flash-latest') + ':streamGenerateContent?alt=sse', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': settings.key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: sys }] },
+        contents: last20.map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] })),
+        generationConfig: { temperature: 0.9, maxOutputTokens: 4096 }
+      })
+    });
+    if (!res.ok) throw await apiError(res);
+    for await (const data of sseLines(res)) {
+      try {
+        const j = JSON.parse(data);
+        const t = j.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('');
+        if (t) onDelta(t);
+      } catch (e) {}
+    }
+  }
+}
+
+async function apiError(res) {
+  let detail = '';
+  try { detail = (await res.text()).slice(0, 220); } catch (e) {}
+  const hint = res.status === 429 ? '無料枠の回数制限に達しました。少し待ってからもう一度。'
+    : (res.status === 401 || res.status === 403) ? 'APIキーが正しいか確認してください。'
+    : (res.status === 404) ? 'モデル名が無いようです。「一覧取得」から選び直してください。' : '';
+  return new Error('HTTP ' + res.status + (hint ? ' — ' + hint : '') + (detail ? '\n' + detail : ''));
+}
+
+/* ---------- 送信 ---------- */
+const input = $('#input'), sendBtn = $('#sendBtn'), dot = $('#statusDot');
+async function send() {
+  if (streaming) { abort && abort.abort(); return; }
+  const text = input.value.trim();
+  if (!text) return;
+  if (settings.provider !== 'pollinations' && (!settings.key || !settings.model)) {
+    switchTab('settings');
+    $('#testResult').className = 'err-msg';
+    $('#testResult').textContent = 'その頭脳にはAPIキーが必要です。保存するか、頭脳を「Pollinations」にしてください。';
+    return;
+  }
+  input.value = ''; input.style.height = 'auto';
+  refreshEmpty();
+  history.push({ role: 'user', text, ts: Date.now() });
+  addMsg('user', text, Date.now());
+  saveHistory();
+
+  streaming = true;
+  dot.classList.add('work');
+  sendBtn.classList.add('stop');
+  sendBtn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="rgba(232,86,63,.25)"/><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>';
+  const think = document.createElement('div');
+  think.className = 'msg agent';
+  think.innerHTML = '<div class="tag-mini">黒</div><div class="bubble thinking"><i></i><i></i><i></i></div>';
+  chatView.appendChild(think);
+  chatView.scrollTop = chatView.scrollHeight;
+
+  let full = '', bubble = null, first = true;
+  abort = new AbortController();
+  try {
+    await streamChat(history, (delta) => {
+      full += delta;
+      if (first) { think.remove(); bubble = addMsg('agent', '', Date.now()); first = false; }
+      bubble.innerHTML = md(full) + '<time>…</time>';
+      chatView.scrollTop = chatView.scrollHeight;
+    });
+    if (!full) full = '(応答が空でした。もう一度お願いします)';
+    if (first) think.remove();
+    history.push({ role: 'agent', text: full, ts: Date.now() });
+    saveHistory();
+    if (bubble) { bubble.innerHTML = md(full) + '<time>' + timeStr(Date.now()) + '</time>'; }
+  } catch (e) {
+    think.remove();
+    const msg = e.name === 'AbortError' ? '(止めました)' : '⚠️ ' + e.message;
+    addMsg('agent', msg, Date.now());
+    history.push({ role: 'agent', text: msg, ts: Date.now() });
+    saveHistory();
+  } finally {
+    streaming = false; abort = null;
+    dot.classList.remove('work');
+    sendBtn.classList.remove('stop');
+    sendBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+    chatView.scrollTop = chatView.scrollHeight;
+  }
+}
+sendBtn.addEventListener('click', send);
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
+});
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 110) + 'px';
+});
+
+/* ---------- 設定 ---------- */
+$('#provider').value = settings.provider || 'pollinations';
+$('#apiKey').value = settings.key || '';
+if (settings.model) {
+  const o = document.createElement('option');
+  o.value = o.textContent = settings.model;
+  $('#model').appendChild(o);
+  $('#model').value = settings.model;
+}
+$('#saveBtn').addEventListener('click', () => {
+  settings.provider = $('#provider').value;
+  settings.key = $('#apiKey').value.trim();
+  settings.model = $('#model').value.trim();
+  saveSettings();
+  refreshEmpty();
+  $('#testResult').className = 'ok-msg';
+  $('#testResult').textContent = '保存しました。';
+});
+$('#provider').addEventListener('change', () => { $('#model').innerHTML = '<option value="">モデルを選択…</option>'; });
+$('#fetchModels').addEventListener('click', async () => {
+  const key = $('#apiKey').value.trim(), prov = $('#provider').value;
+  const res = $('#testResult');
+  try {
+    let ids = [];
+    if (prov === 'gemini') {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models', { headers: { 'x-goog-api-key': key } });
+      if (!r.ok) throw await apiError(r);
+      const j = await r.json();
+      ids = (j.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent') && /gemini/.test(m.name))
+        .map((m) => m.name.replace('models/', '')).sort();
+    } else if (prov === 'pollinations') {
+      const r = await fetch('https://text.pollinations.ai/models');
+      if (!r.ok) throw await apiError(r);
+      const j = await r.json();
+      ids = (Array.isArray(j) ? j : []).map((m) => (typeof m === 'string' ? m : m.name)).filter(Boolean);
+    } else {
+      const r = await fetch('https://api.groq.com/openai/v1/models', { headers: { authorization: 'Bearer ' + key } });
+      if (!r.ok) throw await apiError(r);
+      const j = await r.json();
+      ids = (j.data || []).map((m) => m.id).sort();
+    }
+    const sel = $('#model');
+    sel.innerHTML = '<option value="">モデルを選択…</option>' + ids.map((i) => '<option>' + i + '</option>').join('');
+    if (settings.model && ids.includes(settings.model)) sel.value = settings.model;
+    res.className = 'ok-msg';
+    res.textContent = ids.length + '個のモデルが見つかりました。選んで保存してください。';
+  } catch (e) {
+    res.className = 'err-msg';
+    res.textContent = '一覧の取得に失敗: ' + e.message;
+  }
+});
+$('#testBtn').addEventListener('click', async () => {
+  const save = { provider: $('#provider').value, key: $('#apiKey').value.trim(), model: $('#model').value.trim() };
+  const res = $('#testResult');
+  res.className = '';
+  res.textContent = '確認中…';
+  try {
+    const backup = settings; settings = save;
+    let got = '';
+    await streamChat([{ role: 'user', text: '「黒子、ただいま。」とだけ一言、返してください。' }], (d) => { got += d; });
+    settings = backup;
+    res.className = 'ok-msg';
+    res.textContent = '接続OK「' + got.trim().slice(0, 30) + '」';
+  } catch (e) {
+    settings = save;
+    res.className = 'err-msg';
+    res.textContent = e.message;
+  }
+});
+$('#clearBtn').addEventListener('click', () => {
+  if (confirm('会話履歴をすべて消去します。よろしいですか?')) {
+    history = []; saveHistory(); renderAll();
+  }
+});
+
+/* ---------- 日報 ---------- */
+async function loadReport(date) {
+  const body = $('#reportBody');
+  body.className = 'report-body muted';
+  body.textContent = '読み込み中…';
+  try {
+    const r = await fetch('data/daily/' + (date ? encodeURIComponent(date) + '.json' : 'latest.json') + '?t=' + Date.now());
+    if (r.status === 404) throw new Error('notfound');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    body.className = 'report-body';
+    body.innerHTML = md(j.report || '(中身が空です)') + '<p class="muted" style="margin-top:12px">— ' + j.date + ' ' + (j.generated_at || '') + ' / ' + (j.engine || '') + '</p>';
+    renderDates(j.recent_dates || [], date);
+  } catch (e) {
+    if (e.message === 'notfound') {
+      body.innerHTML =
+        '<p>まだ黒子は働いていません。</p>' +
+        '<p class="muted" style="margin-top:8px">リポジトリの <b>Actions</b> タブ →「黒子の毎日の仕事」→ <b>Run workflow</b> を押すと、今すぐ1回働きます。以後は毎朝7時と夜22時(日本時間)に自動で働きます。</p>';
+      renderDates([], null);
+    } else {
+      body.textContent = '日報の読み込みに失敗しました (' + e.message + ')';
+    }
+  }
+}
+function renderDates(dates, active) {
+  const box = $('#dateChips');
+  box.innerHTML = dates.map((d) =>
+    '<button data-d="' + d + '" class="' + (d === (active || dates[0]) ? 'on' : '') + '">' + d.slice(5) + '</button>'
+  ).join('');
+  box.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => loadReport(b.dataset.d)));
+}
+
+/* ---------- 初期化 ---------- */
+async function init() {
+  if (!settings.provider) settings.provider = 'pollinations';
+  $('#actionsLink').href = 'https://github.com/' + OWNER + '/' + REPO + '/actions';
+  $('#editAgentLink').href = 'https://github.com/' + OWNER + '/' + REPO + '/edit/main/agent.json';
+  $('#editAgentLink2').href = 'https://github.com/' + OWNER + '/' + REPO + '/edit/main/agent.json';
+
+  if (navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+    $('#installHint').style.display = 'none';
+  }
+
+  try {
+    const r = await fetch('agent.json?t=' + Date.now());
+    if (r.ok) {
+      agentCfg = await r.json();
+      $('#agentName').textContent = agentCfg.name || '黒子';
+      const ul = $('#directiveList');
+      ul.innerHTML = (agentCfg.directives || []).map((d) => '<li>' + esc(d) + '</li>').join('');
+    }
+  } catch (e) {}
+
+  renderAll();
+  loadReport(null);
+}
+init();
+</script>
+</body>
+</html>
