@@ -1,0 +1,39 @@
+name: 黒子の毎日の仕事
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 22 * * *"  # 日本時間 07:00
+    - cron: "0 13 * * *"  # 日本時間 22:00
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kuroko
+  cancel-in-progress: false
+
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 黒子が働く(日報を作成)
+        run: node daily.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: 出来高を保存
+        run: |
+          git config user.name "kuroko[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "黒子の日報 $(TZ=Asia/Tokyo date +'%Y-%m-%d')" || echo "変更なし"
+          git push
